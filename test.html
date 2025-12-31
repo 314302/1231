@@ -24,7 +24,7 @@
         gameOver = false;
       let leftJoy = { active: false, id: -1, x: 0, y: 0, currX: 0, currY: 0 };
       let rightJoy = { active: false, id: -1, x: 0, y: 0, currX: 0, currY: 0 };
-      let joySize = 120;
+      let joySize = 130;
 
       function setup() {
         createCanvas(windowWidth, windowHeight);
@@ -33,14 +33,17 @@
 
       function draw() {
         if (gameOver) {
-          background(0, 150);
+          background(0, 180);
           fill(255, 50, 50);
           textAlign(CENTER);
           textSize(40);
           text("環境被保麗龍淹沒了！", width / 2, height / 2);
+          textSize(20);
+          fill(255);
+          text("點擊網頁重新挑戰", width / 2, height / 2 + 50);
           return;
         }
-        background(15, 20, 35);
+        background(10, 15, 25);
         gameTimer += deltaTime / 1000;
         handleInput();
 
@@ -56,8 +59,9 @@
         if (gameTimer >= BOSS_SPAWN_TIME && !boss) {
           boss = new StyrofoamTitan();
           enemies = [];
-        } else if (!boss && frameCount % 60 === 0)
+        } else if (!boss && frameCount % 60 === 0) {
           enemies.push(new NightMarketMonster());
+        }
 
         if (boss) {
           boss.update();
@@ -67,7 +71,8 @@
             background(0, 200);
             fill(0, 255, 100);
             textAlign(CENTER);
-            text("成功淨化保麗龍！", width / 2, height / 2);
+            textSize(35);
+            text("成功淨化保麗龍泰坦！", width / 2, height / 2);
           }
         }
         handleCombat();
@@ -94,6 +99,7 @@
             rightJoy.currY = t.y;
           }
         }
+        if (gameOver) location.reload();
         return false;
       }
       function touchMoved() {
@@ -120,53 +126,28 @@
         if (!sR) rightJoy.active = false;
         return false;
       }
-      function mousePressed() {
-        if (touches.length === 0) touchStarted();
-      }
-      function mouseDragged() {
-        if (touches.length === 0) touchMoved();
-      }
-      function mouseReleased() {
-        if (touches.length === 0) {
-          leftJoy.active = false;
-          rightJoy.active = false;
-        }
-      }
-
       function handleInput() {
         if (leftJoy.active) {
           let a = atan2(leftJoy.currY - leftJoy.y, leftJoy.currX - leftJoy.x);
           let d = dist(leftJoy.x, leftJoy.y, leftJoy.currX, leftJoy.currY);
           let p = constrain(d / (joySize / 2), 0, 1);
-          player.vx += cos(a) * 1.5 * p;
-          player.vy += sin(a) * 1.5 * p;
+          player.vx += cos(a) * 1.6 * p;
+          player.vy += sin(a) * 1.6 * p;
         }
-        if (rightJoy.active && frameCount % 8 === 0) {
+        if (rightJoy.active && frameCount % 7 === 0) {
           let a = atan2(
             rightJoy.currY - rightJoy.y,
             rightJoy.currX - rightJoy.x
           );
-          if (dist(rightJoy.x, rightJoy.y, rightJoy.currX, rightJoy.currY) > 20)
+          if (dist(rightJoy.x, rightJoy.y, rightJoy.currX, rightJoy.currY) > 15)
             bullets.push(new Bullet(player.x, player.y, a));
-        }
-      }
-
-      function drawJoystick(joy, col) {
-        if (joy.active) {
-          fill(col);
-          noStroke();
-          ellipse(joy.x, joy.y, joySize);
-          let a = atan2(joy.currY - joy.y, joy.currX - joy.x);
-          let d = min(dist(joy.x, joy.y, joy.currX, joy.currY), joySize / 2);
-          fill(255, 150);
-          ellipse(joy.x + cos(a) * d, joy.y + sin(a) * d, 50);
         }
       }
 
       class Player {
         constructor() {
           this.x = width / 2;
-          this.y = height / 2;
+          this.y = height * 0.8;
           this.vx = 0;
           this.vy = 0;
           this.hp = 100;
@@ -180,59 +161,64 @@
           this.y = constrain(this.y, 20, height - 20);
         }
         display() {
-          fill(0, 200, 255);
+          push();
+          translate(this.x, this.y);
+          fill(0, 150, 255);
           stroke(255);
-          rect(this.x - 15, this.y - 15, 30, 30, 5);
-        }
-      }
-
-      class Bullet {
-        constructor(x, y, a) {
-          this.x = x;
-          this.y = y;
-          this.a = a;
-        }
-        update() {
-          this.x += cos(this.a) * 12;
-          this.y += sin(this.a) * 12;
-        }
-        display() {
-          fill(0, 255, 200);
+          rect(-15, -15, 30, 30, 5);
+          fill(255);
           noStroke();
-          ellipse(this.x, this.y, 10, 10);
+          ellipse(0, -5, 12, 8);
+          pop();
         }
       }
 
       class NightMarketMonster {
         constructor() {
           this.x = random(width);
-          this.y = -30;
+          this.y = -50;
           this.hp = 3;
+          this.offset = random(100);
         }
         update() {
           let a = atan2(player.y - this.y, player.x - this.x);
-          this.x += cos(a) * 2;
-          this.y += sin(a) * 2;
+          this.x += cos(a) * 2.2 + sin(frameCount * 0.1 + this.offset) * 1;
+          this.y += sin(a) * 2.2;
         }
         display() {
-          fill(100, 200, 100);
-          ellipse(this.x, this.y, 30, 30);
+          fill(150, 100, 50);
+          stroke(50);
+          beginShape();
+          for (let i = 0; i < TWO_PI; i += 0.5) {
+            let r = 18 + sin(i * 3 + frameCount * 0.2) * 5;
+            vertex(this.x + cos(i) * r, this.y + sin(i) * r);
+          }
+          endShape(CLOSE);
+          fill(255);
+          ellipse(this.x - 5, this.y - 2, 5, 5);
+          ellipse(this.x + 5, this.y - 2, 5, 5);
         }
       }
 
       class StyrofoamTitan {
         constructor() {
           this.x = width / 2;
-          this.y = 150;
-          this.hp = 1000;
+          this.y = -100;
+          this.targetY = 150;
+          this.hp = 200;
+          this.maxHp = 200; // 血量改為 200
+          this.rot = 0;
         }
         update() {
-          this.x = width / 2 + sin(frameCount * 0.02) * 100;
-          if (frameCount % 5 === 0)
+          if (this.y < this.targetY) this.y += 2;
+          this.x = width / 2 + sin(frameCount * 0.02) * 120;
+          this.rot += 0.02;
+
+          if (frameCount % 4 === 0)
             fragments.push(
-              new Fragment(this.x + random(-40, 40), this.y + random(-30, 30))
+              new Fragment(this.x + random(-60, 60), this.y + random(-40, 40))
             );
-          if (frameCount % 40 === 0)
+          if (frameCount % 45 === 0)
             bossBullets.push(
               new Skewer(
                 this.x,
@@ -240,31 +226,50 @@
                 atan2(player.y - this.y, player.x - this.x)
               )
             );
+
+          // 血量低於 50% (100) 觸發大絕
+          if (this.hp < this.maxHp * 0.5) {
+            if (frameCount % 10 === 0) {
+              for (let i = 0; i < 3; i++) {
+                let angle = frameCount * 0.1 + (TWO_PI / 3) * i;
+                bossBullets.push(new MicroPlastic(this.x, this.y, angle));
+              }
+            }
+          }
         }
         display() {
-          fill(255);
+          push();
+          translate(this.x, this.y);
+          rotate(sin(this.rot) * 0.1);
+          fill(245);
           stroke(200);
-          ellipse(this.x, this.y, 100, 80);
-          fill(255, 0, 0, 150);
-          ellipse(this.x, this.y, 30, 30);
+          strokeWeight(2);
+          rect(-50, -40, 100, 80, 5);
+          rect(-70, -10, 30, 50, 3);
+          rect(40, -10, 30, 50, 3);
+          fill(255, 50, 50, 200);
+          ellipse(0, 0, 40, 35);
+          fill(0);
+          ellipse(-15, -15, 8, 12);
+          ellipse(15, -15, 8, 12);
+          pop();
         }
       }
 
-      class Fragment {
-        constructor(x, y) {
+      class MicroPlastic {
+        constructor(x, y, a) {
           this.x = x;
           this.y = y;
-          this.vy = random(1, 3);
-          this.alpha = 255;
+          this.a = a;
         }
         update() {
-          this.y += this.vy;
-          this.alpha -= 5;
+          this.x += cos(this.a) * 4;
+          this.y += sin(this.a) * 4;
         }
         display() {
-          fill(255, this.alpha);
+          fill(255);
           noStroke();
-          rect(this.x, this.y, 5, 5);
+          rect(this.x, this.y, 6, 6);
         }
       }
 
@@ -275,16 +280,57 @@
           this.a = a;
         }
         update() {
-          this.x += cos(this.a) * 5;
-          this.y += sin(this.a) * 5;
+          this.x += cos(this.a) * 6;
+          this.y += sin(this.a) * 6;
         }
         display() {
           fill(255, 255, 0);
+          stroke(200, 100, 0);
           push();
           translate(this.x, this.y);
           rotate(this.a);
-          rect(0, -2, 20, 4);
+          rect(0, -2, 25, 5);
           pop();
+        }
+      }
+
+      class Fragment {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.vy = random(1, 4);
+          this.alpha = 255;
+          this.r = random(TWO_PI);
+        }
+        update() {
+          this.y += this.vy;
+          this.alpha -= 4;
+        }
+        display() {
+          fill(255, this.alpha);
+          noStroke();
+          push();
+          translate(this.x, this.y);
+          rotate(this.r);
+          rect(0, 0, 8, 8);
+          pop();
+        }
+      }
+
+      class Bullet {
+        constructor(x, y, a) {
+          this.x = x;
+          this.y = y;
+          this.a = a;
+        }
+        update() {
+          this.x += cos(this.a) * 15;
+          this.y += sin(this.a) * 15;
+        }
+        display() {
+          fill(0, 255, 200);
+          noStroke();
+          ellipse(this.x, this.y, 12, 12);
         }
       }
 
@@ -292,14 +338,14 @@
         for (let i = bullets.length - 1; i >= 0; i--) {
           bullets[i].update();
           bullets[i].display();
-          if (boss && dist(bullets[i].x, bullets[i].y, boss.x, boss.y) < 50) {
-            boss.hp -= 2;
+          if (boss && dist(bullets[i].x, bullets[i].y, boss.x, boss.y) < 60) {
+            boss.hp -= 4;
             bullets.splice(i, 1);
             continue;
           }
           for (let j = enemies.length - 1; j >= 0; j--) {
             if (
-              dist(bullets[i].x, bullets[i].y, enemies[j].x, enemies[j].y) < 20
+              dist(bullets[i].x, bullets[i].y, enemies[j].x, enemies[j].y) < 25
             ) {
               enemies[j].hp--;
               bullets.splice(i, 1);
@@ -307,26 +353,65 @@
               break;
             }
           }
+          if (
+            bullets[i] &&
+            (bullets[i].x < 0 ||
+              bullets[i].x > width ||
+              bullets[i].y < 0 ||
+              bullets[i].y > height)
+          )
+            bullets.splice(i, 1);
         }
         for (let e of enemies) {
           e.update();
           e.display();
-          if (dist(e.x, e.y, player.x, player.y) < 25) player.hp -= 0.5;
+          if (dist(e.x, e.y, player.x, player.y) < 30) player.hp -= 0.5;
         }
-        for (let b of bossBullets) {
-          b.update();
-          b.display();
-          if (dist(b.x, b.y, player.x, player.y) < 20) player.hp -= 10;
+        for (let i = bossBullets.length - 1; i >= 0; i--) {
+          bossBullets[i].update();
+          bossBullets[i].display();
+          if (
+            dist(bossBullets[i].x, bossBullets[i].y, player.x, player.y) < 20
+          ) {
+            player.hp -= 10;
+            bossBullets.splice(i, 1);
+          } else if (bossBullets[i].y > height || bossBullets[i].y < -100)
+            bossBullets.splice(i, 1);
         }
         if (player.hp <= 0) gameOver = true;
       }
 
+      function drawJoystick(joy, col) {
+        if (joy.active) {
+          fill(col);
+          noStroke();
+          ellipse(joy.x, joy.y, joySize);
+          let a = atan2(joy.currY - joy.y, joy.currX - joy.x);
+          let d = min(dist(joy.x, joy.y, joy.currX, joy.currY), joySize / 2);
+          fill(255, 150);
+          ellipse(joy.x + cos(a) * d, joy.y + sin(a) * d, 60);
+        }
+      }
+
       function drawUI() {
         fill(255);
-        textSize(16);
+        textSize(18);
         textAlign(LEFT);
-        text(`能源: ${floor(player.hp)}%`, 20, height - 30);
-        if (boss) text(`泰坦血量: ${floor(boss.hp)}`, 20, height - 55);
+        noStroke();
+        text(`能源: ${floor(player.hp)}%`, 30, height - 40);
+        if (boss) {
+          fill(255, 50);
+          rect(30, 30, 200, 10);
+          fill(255, 50, 50);
+          rect(30, 30, (boss.hp / boss.maxHp) * 200, 10);
+          text("泰坦血量", 30, 60);
+        } else {
+          fill(255, 50);
+          rect(30, 30, 200, 10);
+          fill(0, 255, 150);
+          rect(30, 30, (gameTimer / BOSS_SPAWN_TIME) * 200, 10);
+          text("環境威脅偵測中...", 30, 60);
+        }
       }
     </script>
   </body>
