@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      let player,
+        bullets = [],
+        enemies = [],
+        bossBullets = [],
+        boss;
+      let gameTimer = 0,
+        BOSS_SPAWN_TIME = 10,
+        gameOver = false;
+
+      function setup() {
+        createCanvas(windowWidth, windowHeight);
+        player = new Player();
+      }
+
+      function draw() {
+        if (gameOver) {
+          background(0);
+          fill(255, 0, 0);
+          textAlign(CENTER);
+          textSize(40);
+          text("環境被毀滅了！", width / 2, height / 2);
+          return;
+        }
+        background(15, 10, 25);
+        gameTimer += deltaTime / 1000;
+
+        // 玩家控制
+        player.update();
+        player.display();
+
+        // 10秒出現廚餘 Boss
+        if (gameTimer >= BOSS_SPAWN_TIME && !boss) {
+          boss = new KitchenWasteBoss();
+          enemies = [];
+        } else if (!boss && frameCount % 40 === 0) {
+          enemies.push(new KitchenWasteMonster());
+        }
+
+        if (boss) {
+          boss.update();
+          boss.display();
+        }
+
+        handleCombat();
+        drawUI();
+      }
+
+      class Player {
+        constructor() {
+          this.x = width / 2;
+          this.y = height / 2;
+          this.vx = 0;
+          this.vy = 0;
+          this.hp = 100;
+        }
+        update() {
+          // 支援手機觸控：向點擊位置移動
+          if (mouseIsPressed) {
+            let angle = atan2(mouseY - this.y, mouseX - this.x);
+            this.vx += cos(angle) * 0.8;
+            this.vy += sin(angle) * 0.8;
+          }
+          this.vx *= 0.92;
+          this.vy *= 0.92;
+          this.x += this.vx;
+          this.y += this.vy;
+          if (frameCount % 15 === 0) this.shoot();
+        }
+        display() {
+          fill(50, 200, 250);
+          rect(this.x - 15, this.y - 15, 30, 30, 5);
+          fill(255, 100, 0);
+          triangle(
+            this.x - 10,
+            this.y + 15,
+            this.x + 10,
+            this.y + 15,
+            this.x,
+            this.y + 25
+          );
+        }
+        shoot() {
+          let target = boss ? boss : enemies[0] || null;
+          if (target)
+            bullets.push(new Bullet(this.x, this.y, target.x, target.y));
+        }
+      }
+
+      class KitchenWasteMonster {
+        constructor() {
+          this.x = random(width);
+          this.y = -20;
+        }
+        update(px, py) {
+          let a = atan2(py - this.y, px - this.x);
+          this.x += cos(a) * 2;
+          this.y += sin(a) * 2;
+        }
+        display() {
+          fill(80, 100, 40);
+          ellipse(this.x, this.y, 30, 35);
+          fill(255, 0, 0);
+          ellipse(this.x - 5, this.y - 5, 4);
+          ellipse(this.x + 5, this.y - 5, 4);
+        }
+      }
+
+      class KitchenWasteBoss {
+        constructor() {
+          this.x = width / 2;
+          this.y = 150;
+          this.hp = 300;
+          this.maxHp = 300;
+          this.mode = "SPIRAL";
+          this.timer = 0;
+        }
+        update() {
+          this.timer++;
+          if (this.timer % 120 === 0)
+            this.mode = random(["TRACKING", "SPIRAL", "RADIAL"]);
+          this.x = width / 2 + sin(frameCount * 0.02) * 100;
+
+          if (this.mode === "SPIRAL" && frameCount % 5 === 0) {
+            bossBullets.push(
+              new Skewer(this.x, this.y, frameCount * 0.2, false)
+            );
+          } else if (this.mode === "RADIAL" && frameCount % 40 === 0) {
+            for (let i = 0; i < 10; i++)
+              bossBullets.push(
+                new Skewer(this.x, this.y, (TWO_PI / 10) * i, false)
+              );
+          } else if (this.mode === "TRACKING" && frameCount % 30 === 0) {
+            bossBullets.push(new Skewer(this.x, this.y, 0, true));
+          }
+        }
+        display() {
+          fill(60, 40, 20);
+          ellipse(this.x, this.y, 90, 90);
+          fill(255, 0, 0);
+          rect(this.x - 50, this.y - 70, (this.hp / this.maxHp) * 100, 10);
+        }
+      }
+
+      class Skewer {
+        constructor(x, y, a, homing) {
+          this.x = x;
+          this.y = y;
+          this.a = a;
+          this.homing = homing;
+        }
+        update() {
+          if (this.homing) {
+            let ta = atan2(player.y - this.y, player.x - this.x);
+            this.a = lerp(this.a, ta, 0.05);
+          }
+          this.x += cos(this.a) * 5;
+          this.y += sin(this.a) * 5;
+        }
+        display() {
+          fill(255, 255, 0);
+          ellipse(this.x, this.y, 10, 10);
+        }
+      }
+
+      function Bullet(x, y, tx, ty) {
+        this.x = x;
+        this.y = y;
+        let a = atan2(ty - y, tx - x);
+        this.update = () => {
+          this.x += cos(a) * 10;
+          this.y += sin(a) * 10;
+        };
+        this.display = () => {
+          fill(0, 255, 255);
+          ellipse(this.x, this.y, 8, 8);
+        };
+      }
+
+      function handleCombat() {
+        for (let b of bullets) {
+          b.update();
+          b.display();
+        }
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          enemies[i].update(player.x, player.y);
+          enemies[i].display();
+          if (dist(enemies[i].x, enemies[i].y, player.x, player.y) < 30)
+            player.hp -= 0.5;
+        }
+        for (let i = bossBullets.length - 1; i >= 0; i--) {
+          bossBullets[i].update();
+          bossBullets[i].display();
+          if (
+            dist(bossBullets[i].x, bossBullets[i].y, player.x, player.y) < 20
+          ) {
+            player.hp -= 5;
+            bossBullets.splice(i, 1);
+          }
+        }
+        if (player.hp <= 0) gameOver = true;
+      }
+
+      function drawUI() {
+        fill(255);
+        textSize(20);
+        text(`HP: ${floor(player.hp)}`, 20, height - 30);
+      }
+    </script>
+  </body>
+</html>
